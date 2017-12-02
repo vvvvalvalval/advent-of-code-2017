@@ -10,6 +10,10 @@
                  [prismatic/plumbing "0.4.4"]
                  [vvvvalvalval/supdate "0.2.2"]
                  [vvvvalvalval/scope-capture "0.1.4"]
-                 [vvvvalvalval/scope-capture-nrepl "0.2.0"]]
+                 [vvvvalvalval/scope-capture-nrepl "0.2.0"]
+                 [org.clojure/core.logic "0.8.11"]
+                 [com.cerner/clara-rules "0.16.1"]]
   :repl-options {:init-ns aoc2017.core
                  :nrepl-middleware [sc.nrepl.middleware/wrap-letsc]})
+
+
