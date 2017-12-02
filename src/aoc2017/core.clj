@@ -24,6 +24,27 @@
   (inverse-captcha "91212129")
   )
 
+(defn ic2
+  [digits]
+  (let [digits (into [] (map u/parse-long) digits)
+        n (count digits)
+        cy (cycle digits)]
+    (->> (map vector
+           cy
+           (drop (quot n 2) cy))
+      (take n)
+      (filter (fn [[d1 d2]] (= d1 d2)))
+      (map first)
+      (apply +))))
+
+(comment
+  (ic2 "1212")
+  (ic2 "1221")
+  (ic2 "123425")
+  (ic2 "123123")
+  (ic2 "12131415")
+  )
+
 ;; ------------------------------------------------------------------------------
 ;; Day 2: Corruption Checksum
 
