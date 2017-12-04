@@ -4,10 +4,7 @@
 
 (defn valid? [pw]
   (->> (str/split pw #"\s+")
-    frequencies
-    vals
-    (filter #(> % 1))
-    empty?))
+    (apply distinct?)))
 
 (defn solve1
   [input]
@@ -19,9 +16,7 @@
 (defn valid2? [pw]
   (->> (str/split pw #"\s+")
     (map frequencies)
-    frequencies vals
-    (filter #(> % 1))
-    empty?))
+    (apply distinct?)))
 
 (defn solve2
   [input]
