@@ -13,6 +13,8 @@
                  [vvvvalvalval/scope-capture-nrepl "0.2.0"]
                  [org.clojure/core.logic "0.8.11"]
                  [com.cerner/clara-rules "0.16.1"]]
+  :source-paths ["src"]
+  :java-source-paths ["java"]
   :repl-options {:init-ns aoc2017.core
                  :nrepl-middleware [sc.nrepl.middleware/wrap-letsc]})
 
