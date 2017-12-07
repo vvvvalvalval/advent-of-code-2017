@@ -12,7 +12,8 @@
                  [vvvvalvalval/scope-capture "0.1.4"]
                  [vvvvalvalval/scope-capture-nrepl "0.2.0"]
                  [org.clojure/core.logic "0.8.11"]
-                 [com.cerner/clara-rules "0.16.1"]]
+                 [com.cerner/clara-rules "0.16.1"]
+                 [datascript "0.16.3"]]
   :source-paths ["src"]
   :java-source-paths ["java"]
   :repl-options {:init-ns aoc2017.core
