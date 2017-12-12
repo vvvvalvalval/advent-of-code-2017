@@ -1,5 +1,5 @@
 (ns aoc2017.utils
-  (require [clojure.string :as str]))
+  (:require [clojure.string :as str]))
 
 (set! *warn-on-reflection* true)
 
