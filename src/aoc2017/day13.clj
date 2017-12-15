@@ -1,4 +1,7 @@
-(ns aoc2017.day13)
+(ns aoc2017.day13
+  (:require [clojure.java.io :as io]
+            [clojure.string :as str]
+            [aoc2017.utils :as u]))
 
 
 ;--- Day 13: Packet Scanners ---
@@ -160,3 +163,172 @@
 ;
 ;Given the details of the firewall you've recorded, if you leave immediately, what is the severity of your whole trip?
 ;
+
+(defn Sy
+  [r t]
+  (if (< r 2)
+    0
+    (let [r-1 (dec r)
+          downwards? (-> t (mod (* 2 r-1)) (< r-1))]
+      (+
+        (if downwards? 0 r-1)
+        (*
+          (if downwards? 1 -1)
+          (mod t r-1))))))
+
+(comment
+  (->> (range 1 7)
+    (mapv (fn [r]
+            (->> (range 16)
+              (mapv #(Sy r %))))))
+  =>
+  [[0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
+   [0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1]
+   [0 1 2 1 0 1 2 1 0 1 2 1 0 1 2 1]
+   [0 1 2 3 2 1 0 1 2 3 2 1 0 1 2 3]
+   [0 1 2 3 4 3 2 1 0 1 2 3 4 3 2 1]
+   [0 1 2 3 4 5 4 3 2 1 0 1 2 3 4 5]]
+  )
+
+(defn parse [input]
+  (->> input
+    (u/parse-by [[:_ #"(\d+):\s(\d+)" u/parse-long u/parse-long]])
+    (mapv (fn [[_ d r]]
+            {:d d :r r}))))
+
+
+
+(defn solve1
+  [parsed]
+  (->> parsed
+    (map (fn [{:keys [d r]}]
+           (let [t d
+                 caught? (= (Sy r t) 0)]
+             (if caught?
+               (* d r)
+               0))))
+    (apply +)))
+
+(comment
+  (solve1 (parse (slurp (io/resource "aoc2017/day13.txt"))))
+  )
+
+;The first half of this puzzle is complete! It provides one gold star: *
+;
+;--- Part Two ---
+;Now, you need to pass through the firewall without being caught - easier said than done.
+;
+;You can't control the speed of the packet, but you can delay it any number of picoseconds. For each picosecond you delay the packet before beginning your trip, all security scanners move one step. You're not in the firewall during this time; you don't enter layer 0 until you stop delaying the packet.
+;
+;In the example above, if you delay 10 picoseconds (picoseconds 0 - 9), you won't get caught:
+;
+;State after delaying:
+; 0   1   2   3   4   5   6
+;[ ] [S] ... ... [ ] ... [ ]
+;[ ] [ ]         [ ]     [ ]
+;[S]             [S]     [S]
+;                [ ]     [ ]
+;
+;Picosecond 10:
+; 0   1   2   3   4   5   6
+;( ) [S] ... ... [ ] ... [ ]
+;[ ] [ ]         [ ]     [ ]
+;[S]             [S]     [S]
+;                [ ]     [ ]
+;
+; 0   1   2   3   4   5   6
+;( ) [ ] ... ... [ ] ... [ ]
+;[S] [S]         [S]     [S]
+;[ ]             [ ]     [ ]
+;                [ ]     [ ]
+;
+;
+;Picosecond 11:
+; 0   1   2   3   4   5   6
+;[ ] ( ) ... ... [ ] ... [ ]
+;[S] [S]         [S]     [S]
+;[ ]             [ ]     [ ]
+;                [ ]     [ ]
+;
+; 0   1   2   3   4   5   6
+;[S] (S) ... ... [S] ... [S]
+;[ ] [ ]         [ ]     [ ]
+;[ ]             [ ]     [ ]
+;                [ ]     [ ]
+;
+;
+;Picosecond 12:
+; 0   1   2   3   4   5   6
+;[S] [S] (.) ... [S] ... [S]
+;[ ] [ ]         [ ]     [ ]
+;[ ]             [ ]     [ ]
+;                [ ]     [ ]
+;
+; 0   1   2   3   4   5   6
+;[ ] [ ] (.) ... [ ] ... [ ]
+;[S] [S]         [S]     [S]
+;[ ]             [ ]     [ ]
+;                [ ]     [ ]
+;
+;
+;Picosecond 13:
+; 0   1   2   3   4   5   6
+;[ ] [ ] ... (.) [ ] ... [ ]
+;[S] [S]         [S]     [S]
+;[ ]             [ ]     [ ]
+;                [ ]     [ ]
+;
+; 0   1   2   3   4   5   6
+;[ ] [S] ... (.) [ ] ... [ ]
+;[ ] [ ]         [ ]     [ ]
+;[S]             [S]     [S]
+;                [ ]     [ ]
+;
+;
+;Picosecond 14:
+; 0   1   2   3   4   5   6
+;[ ] [S] ... ... ( ) ... [ ]
+;[ ] [ ]         [ ]     [ ]
+;[S]             [S]     [S]
+;                [ ]     [ ]
+;
+; 0   1   2   3   4   5   6
+;[ ] [ ] ... ... ( ) ... [ ]
+;[S] [S]         [ ]     [ ]
+;[ ]             [ ]     [ ]
+;                [S]     [S]
+;
+;
+;Picosecond 15:
+; 0   1   2   3   4   5   6
+;[ ] [ ] ... ... [ ] (.) [ ]
+;[S] [S]         [ ]     [ ]
+;[ ]             [ ]     [ ]
+;                [S]     [S]
+;
+; 0   1   2   3   4   5   6
+;[S] [S] ... ... [ ] (.) [ ]
+;[ ] [ ]         [ ]     [ ]
+;[ ]             [S]     [S]
+;                [ ]     [ ]
+;
+;
+;Picosecond 16:
+; 0   1   2   3   4   5   6
+;[S] [S] ... ... [ ] ... ( )
+;[ ] [ ]         [ ]     [ ]
+;[ ]             [S]     [S]
+;                [ ]     [ ]
+;
+; 0   1   2   3   4   5   6
+;[ ] [ ] ... ... [ ] ... ( )
+;[S] [S]         [S]     [S]
+;[ ]             [ ]     [ ]
+;                [ ]     [ ]
+;Because all smaller delays would get you caught, the fewest number of picoseconds you would need to delay to get through safely is 10.
+;
+;What is the fewest number of picoseconds that you need to delay the packet to pass through the firewall without being caught?
+;
+;Although it hasn't changed, you can still get your puzzle input.
+;
+
