@@ -220,7 +220,7 @@
 ;
 ;You can't control the speed of the packet, but you can delay it any number of picoseconds. For each picosecond you delay the packet before beginning your trip, all security scanners move one step. You're not in the firewall during this time; you don't enter layer 0 until you stop delaying the packet.
 ;
-;In the example above, if you delay 10 picoseconds (picoseconds 0 - 9), you won't get caught:
+;In the example above, if you delay 10 pic  oseconds (picoseconds 0 - 9), you won't get caught:
 ;
 ;State after delaying:
 ; 0   1   2   3   4   5   6
@@ -331,4 +331,22 @@
 ;
 ;Although it hasn't changed, you can still get your puzzle input.
 ;
+
+
+
+(defn solve2
+  [parsed]
+  (->> (range)
+    (filter (fn [delay]
+              (->> parsed
+                (every? (fn [{:keys [d r]}]
+                          (let [t (+ d delay)
+                                caught? (= (Sy r t) 0)]
+                            (not caught?)))))))
+    first))
+
+(comment
+  (solve2 (parse (slurp (io/resource "aoc2017/day13.txt"))))
+  => 3873662
+  )
 
