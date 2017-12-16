@@ -1,6 +1,8 @@
 (ns aoc2017.day10
   (:require [aoc2017.utils :as u]
-            [clojure.edn :as edn]))
+            [clojure.edn :as edn]
+            [clojure.java.io :as io])
+  (:import (java.io ByteArrayOutputStream Writer)))
 
 ;--- Day 10: Knot Hash ---
 ;You come across some programs that are trying to implement a software emulation of a hash based on knot-tying. The hash these programs are implementing isn't very strong, but you decide to help them anyway. You make a mental note to remind the Elves later not to invent their own cryptographic functions.
@@ -90,20 +92,29 @@
       (drop l coll2))
     (rotate coll2 (- current-pos))))
 
-(defn knot
-  [ls]
-  (loop [coll (range 256)
-         current-pos 0
-         skip-size 0
-         ls ls]
-    (if (empty? ls)
-      coll
-      (let [l (first ls)]
+(defn hash-round
+  [lengths [current-pos skip-size numbers]]
+  (loop [numbers numbers
+         current-pos current-pos
+         skip-size skip-size
+         lengths lengths]
+    (if (empty? lengths)
+      [current-pos skip-size numbers]
+      (let [l (first lengths)]
         (recur
-          (tie-knot current-pos l coll)
+          (tie-knot current-pos l numbers)
           (+ current-pos l skip-size)
           (inc skip-size)
-          (rest ls))))))
+          (rest lengths))))))
+
+(defn knot
+  [ls]
+  (let [numbers (range 256)
+        current-pos 0
+        skip-size 0
+        init-state [current-pos skip-size numbers]
+        [_ _ numbers] (hash-round ls init-state)]
+    numbers))
 
 (defn solve1
   [input]
@@ -114,5 +125,77 @@
     (apply *)))
 
 (comment
+  (->> "165,1,255,31,87,52,24,113,0,91,148,254,158,2,73,153"
+    parse
+    knot)
+
   (solve1 "165,1,255,31,87,52,24,113,0,91,148,254,158,2,73,153")
   )
+
+;; ------------------------------------------------------------------------------
+;; Part 2
+
+(defn read-as-bytes
+  [chars]
+  (let [bw (ByteArrayOutputStream.)]
+    (with-open [^Writer wtr (io/writer bw :encoding "ASCII")]
+      (.write wtr ^chars (char-array chars))
+      (.flush wtr))
+    (seq (.toByteArray bw))))
+
+(defn read-lengths
+  [input]
+  (into []
+    (concat
+      (read-as-bytes input)
+      [17, 31, 73, 47, 23])))
+
+(comment
+  (read-as-bytes "1,2,3")
+  (read-as-bytes "1,2,3")
+  => (49 44 50 44 51)
+
+  (read-as-bytes "165,1,255,31,87,52,24,113,0,91,148,254,158,2,73,153"))
+
+(defn sparse-hash
+  [lengths]
+  (let [init-state [0 0 (range 256)]
+        final-state (nth (iterate #(hash-round lengths %) init-state) 64)
+        [_ _ numbers] final-state]
+    numbers))
+
+(defn dense-hash
+  [sp-hash]
+  (->> sp-hash
+    (partition 16)
+    (mapv #(apply bit-xor %))))
+
+(defn to-hex
+  [d-hash]
+  (->> d-hash
+    (map (fn [byt]
+           (as-> (Long/toHexString byt) ret
+             (if (-> ret (.length) (< 2))
+               (str "0" ret)
+               ret))))
+    (apply str)))
+
+(defn knot-hash
+  [input]
+  (let [lengths (read-lengths input)
+        sp-hash (sparse-hash lengths)
+        d-hash (dense-hash sp-hash)]
+    (to-hex d-hash)))
+
+(comment
+  (->> (read-lengths "165,1,255,31,87,52,24,113,0,91,148,254,158,2,73,153")
+    sparse-hash
+    dense-hash)
+
+  (knot-hash "1,2,4")
+
+  (knot-hash "165,1,255,31,87,52,24,113,0,91,148,254,158,2,73,153")
+  => "2f8c3d2100fdd57cec130d928b0fd2dd"
+  )
+
+
