@@ -71,26 +71,28 @@
 ;Treating your puzzle input as a string of ASCII characters, what is the Knot Hash of your puzzle input? Ignore any leading or trailing whitespace you might encounter.
 ;
 
-
-(defn rotate
-  [coll k]
-  (let [n (count coll)]
-    (->> coll
-      cycle
-      (drop (mod k n))
-      (take n))))
-
 (defn parse [input]
   (edn/read-string (str "[" input "]")))
 
 (defn tie-knot
   [current-pos l coll]
-  (as-> coll coll2
-    (rotate coll2 current-pos)
-    (concat
-      (reverse (take l coll2))
-      (drop l coll2))
-    (rotate coll2 (- current-pos))))
+  (let [coll (vec coll)
+        n (count coll)]
+    (persistent!
+      (reduce
+        (fn [tc k]
+          (let [i (-> current-pos (+ k) (mod n))
+                j (-> current-pos (+ l) (- 1) (- k) (mod n))]
+            (assoc! tc i (get coll j))))
+        (transient coll) (range l)))))
+
+(comment
+  (tie-knot 0 3 [0 1 2 3 4])
+  => '(2 1 0 3 4)
+
+  (tie-knot 3 4 [2 1 0 3 4])
+  => '(4 3 0 1 2)
+  )
 
 (defn hash-round
   [lengths [current-pos skip-size numbers]]
