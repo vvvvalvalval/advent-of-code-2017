@@ -1,4 +1,5 @@
-(ns aoc2017.day14)
+(ns aoc2017.day14
+  (:require [aoc2017.day10 :as day10]))
 
 ;--- Day 14: Disk Defragmentation ---
 ;Suddenly, a scheduled job activates the system's disk defragmenter. Were the situation different, you might sit and watch it for a while, but today, you just don't have that kind of time. It's soaking up valuable system resources that are needed elsewhere, and so the only option is to help it finish its task as soon as possible.
@@ -29,6 +30,54 @@
 ;
 ;Your puzzle input is nbysizxe.
 ;
+
+(defn hash->binary
+  [h32hex]
+  (->> h32hex
+    (mapcat
+      (fn [c]
+        (let [s (str c)]
+          (as-> s ret
+            (Long/parseLong ret 16)
+            (Long/toString ret 2)
+            (map {\0 0 \1 1} ret)
+            (concat
+              (repeat (- 4 (count ret)) 0)
+              ret))
+          )))
+    vec))
+
+(defn row
+  [input i]
+  (hash->binary (day10/knot-hash (str input "-" i))))
+
+(defn grid
+  [input]
+  (->> (range 128)
+    (mapv #(row input %))))
+
+(defn used-squares [grid]
+  (->> grid
+    (apply concat)
+    (filter #{1})
+    count))
+
+(defn solve1
+  [input]
+  (used-squares (grid input)))
+
+(comment
+  (->> (grid "flqrgnkx")
+    (map #(take 8 %))
+    (take 8))
+
+  (solve1 "flqrgnkx")
+  => 8108
+
+  (def input "nbysizxe")
+  (solve1 input)
+  => 8216
+  )
 
 
 
