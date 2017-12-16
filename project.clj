@@ -14,7 +14,9 @@
                  [org.clojure/core.logic "0.8.11"]
                  [com.cerner/clara-rules "0.16.1"]
                  [datascript "0.16.3"]
-                 [instaparse "1.4.8"]]
+                 [instaparse "1.4.8"]
+                 [criterium "0.4.4"]
+                 [com.taoensso/tufte "1.1.2"]]
   :source-paths ["src"]
   :java-source-paths ["java"]
   :repl-options {:init-ns aoc2017.core
