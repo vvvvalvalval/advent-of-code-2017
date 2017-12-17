@@ -32,20 +32,19 @@
 (defn components
   "Given a (presumably undirected) graph, computes the components of that graph."
   [g]
-  (letfn [(visit [c v]
-            (if (contains? c v)
-              c
+  (letfn [(visit [tc v]
+            (if (contains? tc v)
+              tc
               (let [neighbours (get g v #{})]
-                (reduce visit (conj c v) neighbours))))
+                (reduce visit (conj! tc v) neighbours))))
           (component-of [v]
-            (visit #{} v))]
+            (persistent! (visit (transient #{}) v)))]
     (loop [remaining (set (keys g))
            ret []]
       (if (empty? remaining)
         ret
         (let [c (component-of (first remaining))]
           (recur
-            #_(clojure.set/difference remaining c)
             (persistent! (reduce disj! (transient remaining) c))
             (conj ret c)))))))
 
