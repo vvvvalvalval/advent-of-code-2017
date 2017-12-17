@@ -200,7 +200,7 @@
 ;; EXCHANGE
 ;; - [:Exchange i j] consists of applying a transposition (swapping 2 elements) on the positions:
 (def id-positions
-  "the identity permutation on positions"
+  "the identity permutation on the set of positions"
   (vec (range 16)))
 
 (defn exchange-perm
@@ -228,7 +228,7 @@
 ;; PARTNER
 ;; [:Partner x y] also consists of applying a transposition, but on the dancers instead of the positions.
 (def id-dancers
-  "the identity permutation on programs"
+  "the identity permutation on the set of dancers"
   (let [dancers (into [] (map (comp symbol str)) "abcdefghijklmnop")]
     (zipmap dancers dancers)))
 
@@ -237,6 +237,18 @@
   (assoc id-dancers
     x y
     y x))
+
+(comment
+  (compose-perms
+    (partner-perm 'a 'i)
+    '[a b c d e f g h i j k l m n o p])
+  => [i b c d e f g h a j k l m n o p]
+
+  (compose-perms
+    (partner-perm 'a 'i)
+    '[c m p b a l f i d j k e g o h n])
+  => [c m p b i l f a d j k e g o h n]
+  )
 
 ;; *********************************
 ;; COMPOSING PERMUTATIONS
