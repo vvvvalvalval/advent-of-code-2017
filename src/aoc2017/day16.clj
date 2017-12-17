@@ -24,14 +24,8 @@
 ;You watch the dance for a while and record their dance moves (your puzzle input). In what order are the programs standing after their dance?
 ;
 
-(defn parse
-  [input]
-  )
-
-(comment
-  (def input (slurp (io/resource "aoc2017/day16.txt")))
-  (def parsed (parse input))
-  )
+;; ------------------------------------------------------------------------------
+;; Parsing
 
 (defn parse
   [input]
@@ -40,6 +34,14 @@
      [:Exchange #"x(\d+)/(\d+)" u/parse-long u/parse-long]
      [:Partner #"p([a-p])/([a-p])" symbol symbol]]
     (->> (str/split input #",") (str/join "\n"))))
+
+(comment
+  (def input (slurp (io/resource "aoc2017/day16.txt")))
+  (def parsed (parse input))
+
+  (take 5 parsed)
+  => ([:Spin 2] [:Exchange 5 15] [:Partner f a] [:Exchange 12 10] [:Partner p h])
+  )
 
 ;; ------------------------------------------------------------------------------
 ;; Part 1
@@ -111,13 +113,6 @@
 
 ;; ------------------------------------------------------------------------------
 ;; Part 2
-;; running the whole dance is idempotent (Exists p such that dance^p = dance), because each move
-;; of the dance consists of multiplying the state (seen as a permutation) with another permutation
-;; (either a rotation or a transposition) on the left or on the right.
-;; so there exist permutation P and Q such that dance(S) = P * S * Q; in particular, dance^n(S)=P^n * S * Q^n.
-;; P and Q are permutations, so they are idempotent for some exponents p and q, and dance is idempotent of exponent (at most) p x q.
-;; Therefore, we can count on dance being periodic, and on the period being probably relatively low (1e4, not 1e13, since the maximum
-;; idempotence exponent for a 16-elements permutation is 5 * 4 * 140).
 
 (defn find-period
   [parsed]
@@ -149,12 +144,115 @@
   )
 
 ;; ------------------------------------------------------------------------------
-;; Bonus: let's have a bit of fun with 'AOT compilation', using some permutations algebra
-;; we'll optimize our execution time by static analysis of the dance moves
-;; we'll compress our whole input into 2 permutations: a permutation on programs, and a permutation on positions.
+;; ------------------------------------------------------------------------------
+;; ------------------------------------------------------------------------------
+;; BONUS: Using Permutations Algebra for fun and efficiency
+(declare compose-perms)
+;; We'll solve the problem with a different strategy, by noticing that the whole dance can be computed by composing the
+;; positions of the dancers with 2 permutations.
+;;
+;; In particular, this will enable us to solve Part 2 without leveraging the cyclic nature of the dance at all,
+;; because we'll have a fast algorithm for computing N repetitions of the dance, even if N is very large.
+;;
+;; A _Permutation_ is a one-to-one function of a finite set to itself.
+;; In this program, we'll represent permutations as associative data structures:
+;; - permutations on dancers will be represented as maps from dancer name to dancer name
+;; - permutations on positions will be represented as vectors of numbers from 0 to 15
+;;
+;; The state of the dancers will be represented as a vector of symbols, for instance:
+(comment
+  ;; this is the initial state of the dancers
+  [a b c d e f g h i j k l m n o p]
 
+  ;; this is the dancers in some other state
+  [c m p b a l f i d j k e g o h n])
+
+;; Let's now see how dance moves translate to permutations.
+;; *********************************
+;; SPIN
+;; - [:Spin k] consists of applying a circular permutation on the positions
+(defn spin-perm
+  "A permutation on the positions, that rotates them around."
+  [k]
+  (->> (cycle (range 16))
+    (drop (- 16 k))
+    (take 16)
+    vec))
+
+(comment
+  (spin-perm 1)
+  => [15 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14]
+  (spin-perm 3)
+  => [13 14 15 0 1 2 3 4 5 6 7 8 9 10 11 12])
+;; this means we should compose this permutation on the right side of the dancers state:
+(comment
+  (compose-perms
+    '[a b c d e f g h i j k l m n o p]
+    (spin-perm 3))
+  => [n o p a b c d e f g h i j k l m]
+
+  (compose-perms
+    '[c m p b a l f i d j k e g o h n]
+    (spin-perm 3))
+  => [o h n c m p b a l f i d j k e g])
+
+;; *********************************
+;; EXCHANGE
+;; - [:Exchange i j] consists of applying a transposition (swapping 2 elements) on the positions:
+(def id-positions
+  "the identity permutation on positions"
+  (vec (range 16)))
+
+(defn exchange-perm
+  [i j]
+  (assoc id-positions
+    i j
+    j i))
+(comment
+  (exchange-perm 1 15)
+  => [0 15 2 3 4 5 6 7 8 9 10 11 12 13 14 1]
+  )
+;; like before, since this is a permutation on the positions, we compose it on the right side:
+(comment
+  (compose-perms
+    '[a b c d e f g h i j k l m n o p]
+    (exchange-perm 1 15))
+  => [a p c d e f g h i j k l m n o b]
+  (compose-perms
+    '[c m p b a l f i d j k e g o h n]
+    (exchange-perm 1 15))
+  => [c n p b a l f i d j k e g o h m]
+  )
+
+;; *********************************
+;; PARTNER
+;; [:Partner x y] also consists of applying a transposition, but on the dancers instead of the positions.
+(def id-dancers
+  "the identity permutation on programs"
+  (let [dancers (into [] (map (comp symbol str)) "abcdefghijklmnop")]
+    (zipmap dancers dancers)))
+
+(defn partner-perm
+  [x y]
+  (assoc id-dancers
+    x y
+    y x))
+
+;; *********************************
+;; COMPOSING PERMUTATIONS
+;; It is critical to notice that the composition of 2 permutations is still a permutation.
+;; Since a dance move consists of composing some elementary permutation either on the left
+;; or on the right of our dancers state, we can deduce that there exist P and Q such that
+;;
+;; dance(state) = P * state * Q,
+;;
+;; where:
+;; - P is a permutation on the dancers
+;; - Q is a permutation on the positions
+;; - * denotes the composition operator. (concretely defined below)
 (defn compose-perms
-  "composes 2 permutations, works on both map and vector representations"
+  "Composes functions represented by an associative data structures (maps or vectors).
+  The concrete type of the result will be that of the right operand."
   ([p1] p1)
   ([p1 p2]
    (persistent!
@@ -167,63 +265,113 @@
       (compose-perms p1 p2)
       (cons p3 ps))))
 
-(defn spin-perm
-  [x]
-  (->> (cycle (range 16))
-    (drop (- 16 x))
-    (take 16)
-    vec))
+;; *********************************
+;; DANCE EXPONENTIATION
+;; In particular, we can leverage this to efficiently compute the repetition of the dance:
+;;
+;; dance^N(state) = P^N * state * Q^N,
+;;
+;; where dance^N(state) denotes dance(dance(... dance(state)))
+;;
+;; So all we need is a fast algorithm for computing the exponentation of a permutation.
+;; Fortunately, there's a fast algorithm for computing exponentiation by any operator:
+(defn exponentiate
+  "Given an associative operation op (such as +, *, comp, matrix multiplication, ...)
+  efficiently computes (apply op (repeat n v)).
+  The number of calls to `op` is O(log(n))."
+  [op v n]
+  (cond
+    (> n 1)
+    (let [v-half (exponentiate op v (quot n 2))]
+      (cond-> (op v-half v-half)
+        (odd? n)
+        (op v)))
 
-(def id-indexes
-  (vec (range 16)))
+    (= n 1)
+    v
 
-(defn exchange-perm
-  [i j]
-  (assoc id-indexes
-    i j
-    j i))
+    (= n 0)
+    (op)))
 
-(def id-letters
-  (let [letters (into [] (map (comp symbol str)) "abcdefghijklmnop")]
-    (zipmap letters letters)))
+(comment
+  (exponentiate * 2 8)
+  => 256
+  (exponentiate * 2 10)
+  => 1024
+  (exponentiate + 5 100)
+  => 500
+  )
 
-(defn partner-perm
-  [x y]
-  (assoc id-letters
-    x y
-    y x))
+;; ------------------------------------------------------------------------------
+;; Implementation
 
-(defn compile-dance
+(defn dance-decomposition
+  "Computes a representation of the whole dance as a pair of permutations:
+  - :left : a permutation on the set of programs
+  - :right : a permutation on the set of indices"
+  [steps]
+  {:left (->> steps
+           (filter (fn [[op & _]] (#{:Partner} op)))
+           (map (fn [step]
+                  (match [step]
+                    [[:Partner x y]] (partner-perm x y))))
+           (reduce (fn [left perm] (compose-perms perm left)) id-dancers))
+   :right (->> steps
+            (filter (fn [[op & _]] (#{:Exchange :Spin} op)))
+            (map (fn [step]
+                   (match [step]
+                     [[:Exchange i j]] (exchange-perm i j)
+                     [[:Spin x]] (spin-perm x))))
+            (reduce (fn [right perm] (compose-perms right perm)) id-positions))})
+
+(defn dance-n-times
+  [dance-decomp init-state N]
+  (let [{:keys [left right]} dance-decomp]
+    (compose-perms
+      (exponentiate compose-perms left N)
+      init-state
+      (exponentiate compose-perms right N))))
+
+(defn solve1'
+  "Computes the state of the dancers after 1 dance"
   [parsed]
-  (loop [steps parsed
-         perm-indexes id-indexes
-         perm-letters id-letters]
-    (if (empty? steps)
-      (fn run-dance [state]
-        (compose-perms perm-letters state perm-indexes))
-      (let [[perm-indexes perm-letters]
-            (match [(first steps)]
-              [[:Spin x]]
-              [(compose-perms perm-indexes (spin-perm x))
-               perm-letters]
+  (->> (dance-n-times (dance-decomposition parsed) init-state 1)
+    (apply str)))
 
-              [[:Exchange i j]]
-              [(compose-perms perm-indexes (exchange-perm i j))
-               perm-letters]
+(defn solve2'
+  "Computes the state of the dancers after 1 billion dances"
+  [parsed]
+  (->> (dance-n-times (dance-decomposition parsed) init-state 1000000000)
+    (apply str)))
 
-              [[:Partner x y]]
-              [perm-indexes
-               (compose-perms (partner-perm x y) perm-letters)])]
-        (recur (next steps) perm-indexes perm-letters)))))
 
 (comment
   ;; some benchmarking now!
   (require 'criterium.core)
-  (let [parsed (parse input)
-        c (compile-dance parsed)]
-    (criterium.core/quick-bench
-      ;; Execution time mean : 2.399018 µs, that is a 10000x improvement, using no Java interop.
-      (c init-state)))
+
+  (criterium.core/bench
+    (solve1' parsed))
+  ;Evaluation count : 1860 in 60 samples of 31 calls.
+  ;           Execution time mean : 30.439864 ms
+  ;  Execution time std-deviation : 2.805820 ms
+  ; Execution time lower quantile : 25.621449 ms ( 2.5%)
+  ; Execution time upper quantile : 35.170986 ms (97.5%)
+  ;                 Overhead used : 2.303380 ns
+
+  (criterium.core/bench
+    ;; Execution time mean : 29.728498 ms
+    (solve2' parsed))
+  ;Evaluation count : 2040 in 60 samples of 34 calls.
+  ;           Execution time mean : 30.915240 ms
+  ;  Execution time std-deviation : 2.301706 ms
+  ; Execution time lower quantile : 26.898057 ms ( 2.5%)
+  ; Execution time upper quantile : 34.771747 ms (97.5%)
+  ;                 Overhead used : 2.303380 ns
+
+  ;; So there's virtually no performance difference between running the dance once
+  ;; or running it a billion times.
+  ;; The dominant term in the computation is the one-time cost of compiling the dance moves into
+  ;; the permutations representation.
   )
 
 
