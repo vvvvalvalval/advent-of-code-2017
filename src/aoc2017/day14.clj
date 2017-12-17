@@ -1,5 +1,6 @@
 (ns aoc2017.day14
-  (:require [aoc2017.day10 :as day10]))
+  (:require [aoc2017.day10 :as day10]
+            [aoc2017.utils.graphs :as graphs]))
 
 ;--- Day 14: Disk Defragmentation ---
 ;Suddenly, a scheduled job activates the system's disk defragmenter. Were the situation different, you might sit and watch it for a while, but today, you just don't have that kind of time. It's soaking up valuable system resources that are needed elsewhere, and so the only option is to help it finish its task as soon as possible.
@@ -101,4 +102,27 @@
 ;Your puzzle input is still nbysizxe.
 ;
 
+(defn regions-graph
+  [grid]
+  (graphs/digraph-from-pairs
+    (for [i (range 128)
+          j (range 128)
+          :when (-> grid (get i) (get j) (= 1))
+          [i1 j1] [[i j]
+                   [(inc i) j]
+                   [(dec i) j]
+                   [i (inc j)]
+                   [i (dec j)]]
+          :when (< -1 i1 128)
+          :when (< -1 j1 128)
+          :when (-> grid (get i1) (get j1) (= 1))]
+      [[i j] [i1 j1]])))
 
+(defn solve2
+  [input]
+  (count (graphs/components (regions-graph (grid input)))))
+
+(comment
+  (solve2 input)
+  => 1139
+  )
