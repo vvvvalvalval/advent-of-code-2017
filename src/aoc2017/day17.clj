@@ -36,7 +36,7 @@
   [coll i v]
   (let [coll (if (vector? coll) coll (vec coll))
         n (count coll)
-        i+1 (-> i inc (mod n))]
+        i+1 (inc i)]
     (vec
       (concat
         (subvec coll 0 i+1)
@@ -58,7 +58,7 @@
       (let [v (first next-vs)
             n (count coll)
             i (-> current-pos (+ input) (mod n))
-            next-pos (-> i inc (mod n))]
+            next-pos (inc i)]
         (recur
           (next next-vs)
           (insert-after coll i v)
