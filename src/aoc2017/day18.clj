@@ -7,8 +7,6 @@
 ;; the second value of which is the last played frequency,
 ;; the rest holding the register values.
 
-;; FIXME back to ints
-
 (set! *warn-on-reflection* true)
 
 ;; ------------------------------------------------------------------------------
@@ -37,7 +35,7 @@
   [^int regIndex, regName]
   Arg
   (resolveValue [this state]
-    (let [^longs state state]
+    (let [^ints state state]
       (aget state regIndex)))
   (resolveRegister [this]
     regIndex))
@@ -51,14 +49,14 @@
 
 (defn inc-code-pointer!
   [state]
-  (let [^longs state state]
+  (let [^ints state state]
     (aset state 0 (inc (aget state 0)))))
 
 (defrecord Snd
   [X]
   Instr
   (exec [_ state]
-    (let [^longs state state]
+    (let [^ints state state]
       (aset state 1 (.resolveValue ^Arg X state))
       (inc-code-pointer! state)
       nil)))
@@ -67,7 +65,7 @@
   [X Y]
   Instr
   (exec [_ state]
-    (let [^longs state state]
+    (let [^ints state state]
       (aset state
         (.resolveRegister ^Arg X)
         (.resolveValue ^Arg Y state))
@@ -78,7 +76,7 @@
   [X Y]
   Instr
   (exec [_ state]
-    (let [^longs state state
+    (let [^ints state state
           regX (.resolveRegister ^Arg X)
           vY (.resolveValue ^Arg Y state)]
       (aset state
@@ -91,7 +89,7 @@
   [X Y]
   Instr
   (exec [_ state]
-    (let [^longs state state
+    (let [^ints state state
           regX (.resolveRegister ^Arg X)
           vY (.resolveValue ^Arg Y state)]
       (aset state
@@ -104,7 +102,7 @@
   [X Y]
   Instr
   (exec [_ state]
-    (let [^longs state state
+    (let [^ints state state
           regX (.resolveRegister ^Arg X)
           vY (.resolveValue ^Arg Y state)]
       (aset state
@@ -117,7 +115,7 @@
   [X]
   Instr
   (exec [_ state]
-    (let [^longs state state
+    (let [^ints state state
           vX (.resolveValue ^Arg X state)]
       (inc-code-pointer! state)
       (if (zero? vX)
@@ -128,7 +126,7 @@
   [X Y]
   Instr
   (exec [_ state]
-    (let [^longs state state
+    (let [^ints state state
           vX (.resolveValue ^Arg X state)
           vY (.resolveValue ^Arg Y state)]
       (aset state 0
@@ -245,7 +243,7 @@
   (int-array (+ 2 (count (:registers compiled))) 0))
 
 (defn exec-next
-  [^objects instrs, ^longs state]
+  [^objects instrs, ^ints state]
   (let [code-i (aget state 0)
         instr (aget instrs code-i)]
     (exec instr state)))
