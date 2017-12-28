@@ -182,85 +182,45 @@
 
 ;; ------------------------------------------------------------------------------
 ;; Part 2
+;; analysis of the code shows it counts prime numbers of the form b+17k that are less than or equal to c
+;; and sets register h to the result
 
-(defn set-register!
-  [compiled, ^ints state, regName, value]
-  (aset state
-    (get (:register-names compiled) regName)
-    (int value)))
-
-(defn read-register
-  [compiled, ^ints state, regName]
-  (aget state
-    (int (get (:register-names compiled) regName))))
-
-(defn pretty-state
-  [compiled, ^ints state, t]
-  [t
-   (aget state 0)
-   (into {}
-     (for [[regName regIndex] (:register-names compiled)]
-       [regName (aget state regIndex)]))])
-
-(defn loop11-19
-  [^ints state]
-  (prn "11-19")
-  (let [b (aget state 2)
-        d (aget state 4)
-        iG (int 7)
-        iE (int 5)
-        e0 (aget state iE)
-        _ (when-not (<= (+ e0 1) b)
-            (throw (ex-info "Should have e + 1 <= b to prevent infinite loop"
-                     {:b b :e e0})))]
-    ;; end in instr 20
-    (aset state 0 20)
-    ;; exit when g = 0, so g = 0 in the end
-    (aset state iG 0)
-    ;; e ends with value b, because g = e - b
-    (aset state iE b)
-    (when (and
-            (not (zero? d))
-            (-> b (mod d) zero?)
-            (let [bd (quot b d)]
-              (and (<= e0 bd) (< bd b))))
-      (let [iF (int 6)]
-        (aset state iF 0)))
-    ))
+(defn primes-<
+ "Finds all prime numbers less than n, returns them sorted in a vector"
+  [n]
+  (if (< n 2)
+    []
+    (let [^booleans sieve (boolean-array n false)
+          s (-> n Math/sqrt Math/floor int)]
+      (loop [p 2]
+        (if (> p s)
+          (into []
+            (remove #(aget sieve %))
+            (range 2 n))
+          (do
+            (when-not (aget sieve p)
+              (loop [i (* 2 p)]
+                (when (< i n)
+                  (aset sieve i true)
+                  (recur (+ i p)))))
+            (recur (inc p))))))))
 
 (defn solve2
-  [compiled]
-  (let [{:as compiled :keys [instrs]} compiled
-        ^ints state (init-state compiled)
-        n-instrs (alength ^objects instrs)]
-    (set-register! compiled state 'a 1)
-    (loop [t 0]
-      #_(prn (pretty-state compiled state t))
-      #_(when (> t 100)
-        (throw (ex-info "aaaaargh" {})))
-      #_(when (-> t (mod 1000000) (= 1))
-        (prn (pretty-state compiled state t)))
-      (let [i (aget state 0)]
-        (if (< i n-instrs)
-          (cond
-            (= i (int 11))
-            (loop11-19 state)
-            :else
-            (do
-              (exec1-next instrs state)
-              (recur (inc t))))
-          (read-register compiled state 'h))))))
-
+  [b c]
+  (->> b
+    (iterate #(+ % 17))
+    (take-while #(<= % c))
+    (filter (set (primes-< (inc c))))
+    count))
 
 (comment
-  (pretty-state
-    compiled
-    (let [st (init-state compiled)]
-      (set-register! compiled st 'b 42)
-      (set-register! compiled st 'h 3)
-      st)
-    9)
+  (let [b (-> 81 (* 100) (+ 100000))
+        c (+ b 17000)]
+    (solve2 b c))
+  => 92
+  )
 
+(comment
   (->> input
     (str/split-lines)
     (map-indexed (fn [i l]
@@ -322,9 +282,6 @@
      ;; to 8
      [31 "jnz 1 -23"])
    ]
-
-  (future
-    (time (println (solve2 compiled))))
   )
 
 
