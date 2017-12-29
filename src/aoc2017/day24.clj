@@ -1,4 +1,7 @@
-(ns aoc2017.day24)
+(ns aoc2017.day24
+  (:require [clojure.java.io :as io]
+            [clojure.string :as str]
+            [aoc2017.utils :as u]))
 
 ;--- Day 24: Electromagnetic Moat ---
 ;The CPU itself is a large, black building surrounded by a bottomless pit. Enormous metal tubes extend outward from the side of the building at regular intervals and descend down into the void. There's no way to cross, but you need to get inside.
@@ -34,9 +37,98 @@
 ;0/2--2/2--2/3
 ;0/2--2/2--2/3--3/4
 ;0/2--2/2--2/3--3/5
-;(Note how, as shown by 10/1, order of ports within a component doesn't matter. However, you may only use each port on a component once.)
+;(Note how, as shown by 10/1, order of ports within a component doesn't matter.
+; However, you may only use each port on a component once.)
 ;
-;Of these bridges, the strongest one is 0/1--10/1--9/10; it has a strength of 0+1 + 1+10 + 10+9 = 31.
+;Of these bridges, the strongest one is 0/1--10/1--9/10;
+; it has a strength of 0+1 + 1+10 + 10+9 = 31.
 ;
 ;What is the strength of the strongest bridge you can make with the components you have available?
+
+
+(def empty-cpnts {})
+
+(defn add-cpnt
+  [cpnts cpnt]
+  (reduce
+    (fn [cpnts port]
+      (update cpnts port #(-> % (or #{}) (conj cpnt))))
+    cpnts
+    cpnt))
+
+(defn having-port
+  [cpnts port]
+  (get cpnts port))
+
+(defn remove-cpnt
+  [cpnts cpnt]
+  (reduce
+    (fn [cpnts port]
+      (update cpnts port #(disj % cpnt)))
+    cpnts
+    cpnt))
+
+(defn parse-cpnts
+  [input]
+  (->> input
+    (str/split-lines)
+    (map (fn [l]
+           (->> (str/split l #"/")
+             (map u/parse-long)
+             set)))
+    (reduce add-cpnt empty-cpnts)))
+
+(comment
+  (def input
+    "0/2\n2/2\n2/3\n3/4\n3/5\n0/1\n10/1\n9/10")
+  (def input (slurp (io/resource "aoc2017/day24.txt")))
+
+  (def cpnts (parse-cpnts input))
+  )
+
+(defn other-port
+  [cpnt from-port]
+  (if (-> cpnt count (= 1))
+    from-port
+    (-> cpnt (disj from-port) first)))
+
+
+(defn max-brigde-weight
+  [cpnts from-port]
+  (->>
+    (having-port cpnts from-port)
+    (transduce
+      (map (fn [cpnt]
+             (let [to-port (other-port cpnt from-port)]
+               (+
+                 from-port to-port
+                 (max-brigde-weight
+                   (remove-cpnt cpnts cpnt)
+                   to-port)))))
+      max 0)))
+
+(defn solve1
+  [cpnts]
+  (max-brigde-weight cpnts 0))
+
+(comment
+  (solve1 cpnts)
+  => 1868
+  )
+
+;--- Part Two ---
+;The bridge you've built isn't long enough; you can't jump the rest of the way.
+;
+;In the example above, there are two longest bridges:
+;
+;0/2--2/2--2/3--3/4
+;0/2--2/2--2/3--3/5
+;Of them, the one which uses the 3/5 component is stronger; its strength is 0+2 + 2+2 + 2+3 + 3+5 = 19.
+;
+;What is the strength of the longest bridge you can make? If you can make multiple bridges of the longest length, pick the strongest one.
+;
+;Although it hasn't changed, you can still get your puzzle input.
+;
+
+
 
