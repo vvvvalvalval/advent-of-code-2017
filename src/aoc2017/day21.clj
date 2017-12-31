@@ -1,4 +1,6 @@
-(ns aoc2017.day21)
+(ns aoc2017.day21
+  (:require [clojure.java.io :as io]
+            [clojure.string :as str]))
 
 ;--- Day 21: Fractal Art ---
 ;You find a program trying to generate some art. It uses a strange process that involves repeatedly enhancing the detail of an image through a set of rules.
@@ -76,3 +78,130 @@
 ;Thus, after 2 iterations, the grid contains 12 pixels that are on.
 ;
 ;How many pixels stay on after 5 iterations?
+
+(defn parse-pattern
+  [ps]
+  (->> (str/split ps #"/")
+    (mapv vec)))
+
+(defn rotate
+  [p]
+  (let [n (count p)]
+    (into []
+      (map (fn [i]
+             (into []
+               (map (fn [j]
+                      (-> p (get j) (get (- n i 1)))))
+               (range n))))
+      (range n))))
+
+(defn flip
+  [p]
+  (let [n (count p)]
+    (into []
+      (map (fn [i]
+             (into []
+               (map (fn [j]
+                      (-> p (get i) (get (- n j 1)))))
+               (range n))))
+      (range n))))
+
+(defn rotations
+  [p]
+  (->> p (iterate rotate) (take 4) set))
+
+(defn isometries
+  [p]
+  (clojure.set/union
+    (rotations p)
+    (rotations (flip p))))
+
+(comment
+  (rotate
+    [[1 0 0]
+     [1 0 2]
+     [0 1 0]])
+  =>
+  [[0 2 0]
+   [0 0 1]
+   [1 1 0]]
+  )
+
+(defn parse-rules
+  [input]
+  (->> input
+    (str/split-lines)
+    (map (fn [l]
+           (let [[left right] (str/split l #"\s=>\s")]
+             [(parse-pattern left) (parse-pattern right)])))
+    (mapcat (fn [[left right]]
+              (for [l (isometries left)]
+                [l right])))
+    (into {})))
+
+(comment
+  (def input (slurp (io/resource "aoc2017/day21.txt")))
+  (def rules (parse-rules input))
+
+  )
+
+(defn subgrid [grid i0 j0 i1 j1]
+  (->> (subvec grid i0 i1)
+    (mapv #(subvec % j0 j1))))
+
+(defn empty-grid [N]
+  (into []
+    (repeat N
+      (into []
+        (repeat N nil)))))
+
+(defn enhance-grid
+  [rules grid]
+  (let [N (count grid)
+        l (if (even? N) 2 3)]
+    (->>
+      (for [I (range (quot N l))
+            J (range (quot N l))
+            :let [sg (subgrid grid
+                       (* I l) (* J l)
+                       (+ (* I l) l) (+ (* J l) l))
+                  enhanced (-> (get rules sg)
+                             (or (throw (ex-info "No matching rule"
+                                          {:sg sg :I I :J J}))))]
+            i- (range (inc l))
+            j- (range (inc l))
+            :let [i (+ (* I (inc l)) i-)
+                  j (+ (* J (inc l)) j-)]]
+        [i j (-> enhanced (get i-) (get j-))])
+      (reduce
+        (fn [ret [i j v]]
+          (update ret i #(assoc % j v)))
+        (empty-grid (-> N (quot l) (* (inc l))))))))
+
+(def p0
+  [[\. \# \.]
+   [\. \. \#]
+   [\# \# \#]])
+
+(defn count-on-pixels
+  [grid]
+  (->> grid
+    (mapcat identity)
+    (filter #{\#})
+    count))
+
+(defn solve1
+  [rules]
+  (count-on-pixels
+    (nth
+      (iterate #(enhance-grid rules %) p0)
+      5)))
+
+(comment
+  (solve1 rules)
+  => 179
+  )
+
+
+
+
