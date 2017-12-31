@@ -1,6 +1,6 @@
 package aoc2017.day18;
 
 public interface Arg {
-    long resolveValue(int[] state);
+    long resolveValue(long[] state);
     int resolveRegister();
 }
