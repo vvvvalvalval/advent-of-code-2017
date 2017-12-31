@@ -92,24 +92,35 @@
     from-port
     (-> cpnt (disj from-port) first)))
 
+(defn max-score
+  ([s1] s1)
+  ([s1 s2]
+    (let [c (compare s1 s2)]
+      (if (> c 0) s1 s2)
+      )))
 
-(defn max-brigde-weight
-  [cpnts from-port]
-  (->>
-    (having-port cpnts from-port)
-    (transduce
-      (map (fn [cpnt]
-             (let [to-port (other-port cpnt from-port)]
-               (+
-                 from-port to-port
-                 (max-brigde-weight
-                   (remove-cpnt cpnts cpnt)
-                   to-port)))))
-      max 0)))
+(defn max-bridge-score
+  [add-cpnt-to-score zero-score cpnts from-port]
+  (letfn [(walk [cpnts from-port]
+            (->>
+              (having-port cpnts from-port)
+              (transduce
+                (map (fn [cpnt]
+                       (let [to-port (other-port cpnt from-port)]
+                         (add-cpnt-to-score
+                           from-port to-port
+                           (walk
+                             (remove-cpnt cpnts cpnt)
+                             to-port)))))
+                max-score zero-score)))]
+    (walk cpnts from-port)))
 
 (defn solve1
   [cpnts]
-  (max-brigde-weight cpnts 0))
+  (max-bridge-score
+    (fn [from-port to-port score]
+      (+ from-port to-port score))
+    0 cpnts 0))
 
 (comment
   (solve1 cpnts)
@@ -130,5 +141,17 @@
 ;Although it hasn't changed, you can still get your puzzle input.
 ;
 
+(defn solve2
+  [cpnts]
+  (first
+    (max-bridge-score
+      (fn [from-port to-port [l s]]
+        [(inc l) (+ from-port to-port s)])
+      [0 0]
+      cpnts 0)))
 
+(comment
+  (solve2 cpnts)
+  => 40
+  )
 
