@@ -120,12 +120,13 @@
         (letter? v) current-dir
         :else (throw (ex-info "Unknown case" {:current-pos current-pos :v v :current-dir current-dir}))))))
 
-(defn solve1
+(defn walk
   [grid]
   (loop
     [pos (start-pos grid)
      dir [1 0]
-     letters []]
+     letters []
+     n-moves 0]
     (let [v (cell-value grid pos)
           letters (cond-> letters
                     (letter? v) (conj v))]
@@ -133,8 +134,16 @@
         (recur
           (move-by-dir pos nd)
           nd
-          letters)
-        (apply str letters)))))
+          letters
+          (inc n-moves))
+        {:pos pos :dir dir
+         :letters letters
+         :n-moves n-moves}))))
+
+(defn solve1
+  [grid]
+  (->> (walk grid)
+    :letters (apply str)))
 
 (defn print-subgrid
   "for debugging"
@@ -157,3 +166,36 @@
 
   )
 
+;--- Part Two ---
+;The packet is curious how many steps it needs to go.
+;
+;For example, using the same routing diagram from the example above...
+;
+;     |
+;     |  +--+
+;     A  |  C
+; F---|--|-E---+
+;     |  |  |  D
+;     +B-+  +--+
+;
+;...the packet would go:
+;
+;6 steps down (including the first line at the top of the diagram).
+;3 steps right.
+;4 steps up.
+;3 steps right.
+;4 steps down.
+;3 steps right.
+;2 steps up.
+;13 steps left (including the F it stops on).
+;This would result in a total of 38 steps.
+;
+;How many steps does the packet need to go?
+
+(defn solve2
+  [grid]
+  (->> (walk grid) :n-moves))
+
+(comment
+  (solve2 grid)
+  )

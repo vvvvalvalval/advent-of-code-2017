@@ -190,18 +190,32 @@
     (filter #{\#})
     count))
 
-(defn solve1
-  [rules]
+(defn count-on-after
+  [rules n]
   (count-on-pixels
     (nth
       (iterate #(enhance-grid rules %) p0)
-      5)))
+      n)))
+
+(defn solve1
+  [rules]
+  (count-on-after rules 5))
 
 (comment
   (solve1 rules)
   => 179
   )
 
+;--- Part Two ---
+;How many pixels stay on after 18 iterations?
 
+(defn solve2
+  [rules]
+  (count-on-after rules 18))
+
+(comment
+  (solve2 rules)
+  => 179
+  )
 
 

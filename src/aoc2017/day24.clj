@@ -143,7 +143,7 @@
 
 (defn solve2
   [cpnts]
-  (first
+  (second
     (max-bridge-score
       (fn [from-port to-port [l s]]
         [(inc l) (+ from-port to-port s)])
