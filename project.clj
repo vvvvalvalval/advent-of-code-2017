@@ -9,7 +9,7 @@
                  [org.clojure/core.match "0.3.0-alpha4"]
                  [prismatic/plumbing "0.4.4"]
                  [vvvvalvalval/supdate "0.2.2"]
-                 [vvvvalvalval/scope-capture "0.1.4"]
+                 [vvvvalvalval/scope-capture "0.3.2"]
                  [vvvvalvalval/scope-capture-nrepl "0.2.0"]
                  [org.clojure/core.logic "0.8.11"]
                  [com.cerner/clara-rules "0.16.1"]

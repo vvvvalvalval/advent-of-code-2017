@@ -185,6 +185,40 @@
 ;; analysis of the code shows it counts prime numbers of the form b+17k that are less than or equal to c
 ;; and sets register h to the result
 
+(comment
+  (comment
+    (defn nested-paths
+      [v]
+      (cond
+        (map? v)
+        (mapcat
+          (fn [[k1 v1]]
+            (->> (nested-paths v1)
+              (map (fn [p]
+                     (cons k1 p)))))
+          v)
+
+        (and (sequential? v) (indexed? v))
+        (mapcat
+          (fn [i v1]
+            (->> (nested-paths v1)
+              (map (fn [p]
+                     (cons i p)))))
+          (range)
+          v)
+
+        :else
+        [[]]
+        ))
+
+    (nested-paths
+      {:a 42
+       :b {:c 3 :d 4}
+       :c [{:e 1 :f 0}
+           {:e 2 :f 3}]})
+    => ((:a) (:b :c) (:b :d) (:c 0 :e) (:c 0 :f) (:c 1 :e) (:c 1 :f))
+    ))
+
 (defn primes-<
  "Finds all prime numbers less than n, returns them sorted in a vector"
   [n]
